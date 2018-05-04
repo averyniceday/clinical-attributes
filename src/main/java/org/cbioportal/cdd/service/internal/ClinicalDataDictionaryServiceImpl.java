@@ -144,8 +144,8 @@ public class ClinicalDataDictionaryServiceImpl implements ClinicalDataDictionary
     }
 
     @Override
-    public Map<String, String> forceResetCache() throws ClinicalMetadataSourceUnresponsiveException {
-        clinicalAttributesCache.resetCache(true);
+    public Map<String, String> forceResetCache(boolean force) throws ClinicalMetadataSourceUnresponsiveException {
+        clinicalAttributesCache.resetCache(force);
         assertCacheIsValid();
         return Collections.singletonMap("response", "Success!");
     }

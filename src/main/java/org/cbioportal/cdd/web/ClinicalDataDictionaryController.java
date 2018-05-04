@@ -121,8 +121,9 @@ public class ClinicalDataDictionaryController {
     )
     @ApiIgnore
     @RequestMapping(method = RequestMethod.GET, value = "/refreshCache", produces = MediaType.APPLICATION_JSON_VALUE)
-    public Map<String, String> forceResetCache() {
-        return clinicalAttributesService.forceResetCache();
+    public Map<String, String> forceResetCache(
+        @RequestParam(value = "force", required = true) boolean force) {
+        return clinicalAttributesService.forceResetCache(force);
     }
 
     @ExceptionHandler

@@ -22,9 +22,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.ArrayList;
+import java.util.Date;
 
 import org.cbioportal.cdd.model.ClinicalAttributeMetadata;
 import org.cbioportal.cdd.repository.ClinicalAttributeMetadataRepository;
+import org.cbioportal.cdd.service.exception.CacheFailedToResetException;
 
 import com.google.common.base.Strings;
 
@@ -47,6 +49,7 @@ public class ClinicalAttributeMetadataCache {
     private static HashMap<String, ClinicalAttributeMetadata> clinicalAttributeCache;
     // if overridesCache is null it means we could not populate it, there was an error
     private static HashMap<String, Map<String, ClinicalAttributeMetadata>> overridesCache;
+    private static Date dateOfLastCacheRefresh = new Date();
     private static int consecutiveFailedAttempts = 0;
     private static final int MAX_FAILED_ATTEMPTS = 3;
 
@@ -73,14 +76,6 @@ public class ClinicalAttributeMetadataCache {
     @Scheduled(cron="0 15,30,45 12 * * MON") // call three times in 15 minute intervals once per week
     private void scheduleResetCache() {
         // TODO make sure we don't have two scheduled calls run simultaneously
-        resetCache();
-    }
-
-    /**
-    * This method does not need to be called, it will automatically be called by scheduleResetCache().
-    * It is a public method so that it can be easily tested.
-    */
-    public void resetCache() {
         resetCache(false);
     }
 
@@ -90,6 +85,7 @@ public class ClinicalAttributeMetadataCache {
     */
     public void resetCache(boolean force) {
         logger.info("resetCache(): refilling clinical attribute cache");
+        Date dateOfCurrentCacheRefresh = new Date();
         List<ClinicalAttributeMetadata> latestClinicalAttributeMetadata = null;
         // latestOverrides is a map of study-id to list of overridden ClinicalAttributeMetadata objects
         Map<String, ArrayList<ClinicalAttributeMetadata>> latestOverrides = null;
@@ -102,20 +98,14 @@ public class ClinicalAttributeMetadataCache {
             } else {
                 logger.error("resetCache(): failed to pull overrides from repository");
             }
-            consecutiveFailedAttempts += 1;
-            if (consecutiveFailedAttempts >= MAX_FAILED_ATTEMPTS || force) {
+            if (cacheIsStale(dateOfCurrentCacheRefresh) || force) {
                 clinicalAttributeCache = null;
                 overridesCache = null;
-                if (force) {
-                    logger.error("resetCache(force = true): failed to pull from repository, Emptying caches");
-                } else {
-                    logger.error("resetCache(): failed to pull from repository " + consecutiveFailedAttempts +  " times, Emptying caches");
-                }
-            }
-            return;
+                logger.error("resetCache(force = true): failed to pull from repository, Emptying caches");
+            } else {
+                throw new CacheFailedToResetException("Failed attempt to reset cache at: " + datetOfCurrentCacheRefresh.toString() + " -- cache still available");
+            } 
         }
-        // we succeeded, reset consecutiveFailedAttempts
-        consecutiveFailedAttempts = 0;
         HashMap<String, ClinicalAttributeMetadata> latestClinicalAttributeMetadataCache = new HashMap<String, ClinicalAttributeMetadata>();
         for (ClinicalAttributeMetadata clinicalAttributeMetadata : latestClinicalAttributeMetadata) {
             latestClinicalAttributeMetadataCache.put(clinicalAttributeMetadata.getColumnHeader(), clinicalAttributeMetadata);
@@ -136,6 +126,20 @@ public class ClinicalAttributeMetadataCache {
         logger.info("resetCache(): refilled cache with " + latestClinicalAttributeMetadata.size() + " clinical attributes");
         overridesCache = latestOverridesCache;
         logger.info("resetCache(): refilled overrides cache with " + latestOverrides.size() + " overrides");
+        dateOfLastCacheRefresh = dateOfCurrentCacheRefresh;
+        logger.info("resetCache(): date of last cache refresh set to new date: " + dateOfLastCacheRefresh.toString());
+    }
+
+    public boolean cacheIsStale(Date dateOfCurrentCacheRefresh) {
+        long dateOfLastRefreshAsMilliseconds = dateOfLastCacheRefresh.getTime();
+        long dateOfCurrentCacheRefreshAsMilliseconds = dateOfCurrentCacheRefresh.getTime();
+        long differenceInTime = dateOfCurrentCacheRefreshAsMilliseconds - dateOfLastRefreshAsMilliseconds;
+        // return true if difference in time is greater than 3 days - milleseconds/1000/60/60/24
+        if (differenceInTime/86400000 > 3) {
+            return true;
+        } else {
+            return false; 
+        }
     }
 
     private void fillOverrideAttributeWithDefaultValues(ClinicalAttributeMetadata overrideClinicalAttribute, ClinicalAttributeMetadata defaultClinicalAttribute) {

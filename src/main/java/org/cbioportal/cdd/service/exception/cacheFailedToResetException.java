@@ -13,22 +13,19 @@
  * Center has been advised of the possibility of such damage.
  */
 
-package org.cbioportal.cdd.service;
+package org.cbioportal.cdd.service.exception;
 
-import java.util.List;
-import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import org.cbioportal.cdd.model.ClinicalAttributeMetadata;
-import org.cbioportal.cdd.model.CancerStudy;
-import org.cbioportal.cdd.service.exception.ClinicalAttributeNotFoundException;
+public class CacheFailedToResetException extends RuntimeException {
 
-/**
- * @author Manda Wilson 
- */
-public interface ClinicalDataDictionaryService {
-    List<CancerStudy> getCancerStudies();
-    List<ClinicalAttributeMetadata> getClinicalAttributeMetadata(String cancerStudy);
-    List<ClinicalAttributeMetadata> getMetadataByColumnHeaders(String cancerStudy, List<String> columnHeaders) throws ClinicalAttributeNotFoundException;
-    ClinicalAttributeMetadata getMetadataByColumnHeader(String cancerStudy, String columnHeader) throws ClinicalAttributeNotFoundException;
-    Map<String, String> forceResetCache(boolean force);
+    private static final Logger logger = LoggerFactory.getLogger(CacheFailedToResetException.class);
+
+    public CacheFailedToResetException(String error) {
+        super(error);
+        logger.error(error);
+    }
+
 }
+
