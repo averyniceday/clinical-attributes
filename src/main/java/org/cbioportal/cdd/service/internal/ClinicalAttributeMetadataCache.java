@@ -174,7 +174,7 @@ public class ClinicalAttributeMetadataCache {
     private void fillOverrideAttributeWithDefaultValues(ClinicalAttributeMetadata overrideClinicalAttribute, ClinicalAttributeMetadata defaultClinicalAttribute) {
         logger.debug("fillOverrideAttributeWithDefaultValues()");
         if (Strings.isNullOrEmpty(overrideClinicalAttribute.getDisplayName())) {
-            overrideClinicalAttribute.setDisplayName(defaultClinicalAttribute.getDisplayName());
+            overrideClinicalAttribute.setDisplayName(defaultClinicalAttribute.getDisplayName().toLowerCase());
         }
         if (Strings.isNullOrEmpty(overrideClinicalAttribute.getDescription())) {
             overrideClinicalAttribute.setDescription(defaultClinicalAttribute.getDescription());
