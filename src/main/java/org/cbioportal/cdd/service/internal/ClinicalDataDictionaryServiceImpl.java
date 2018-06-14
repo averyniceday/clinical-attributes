@@ -139,7 +139,7 @@ public class ClinicalDataDictionaryServiceImpl implements ClinicalDataDictionary
         List<CancerStudy> cancerStudies = new ArrayList<CancerStudy>();
         Map<String, Map<String, ClinicalAttributeMetadata>> overridesCache = clinicalAttributesCache.getClinicalAttributeMetadataOverrides();
         for (String cancerStudyName : overridesCache.keySet()) {
-            cancerStudies.add(new CancerStudy(cancerStudyName));
+            cancerStudies.add(new CancerStudy(cancerStudyName.toUpperCase()));
         }
         return cancerStudies;
     }

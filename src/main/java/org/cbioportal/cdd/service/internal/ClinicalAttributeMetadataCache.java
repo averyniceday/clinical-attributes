@@ -62,7 +62,7 @@ public class ClinicalAttributeMetadataCache {
     private static HashMap<String, Map<String, ClinicalAttributeMetadata>> overridesCache;
     private static Date dateOfLastCacheRefresh = new Date();
     
-    public static final Integer MAXIMUM_CACHE_AGE_IN_DAYS = 3;
+    public static final Integer MAXIMUM_CACHE_AGE_IN_DAYS = 2;
     private static final Logger logger = LoggerFactory.getLogger(ClinicalAttributeMetadataCache.class);
 
     @Autowired
