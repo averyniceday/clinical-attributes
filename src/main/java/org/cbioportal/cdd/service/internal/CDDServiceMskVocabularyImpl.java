@@ -18,6 +18,8 @@ package org.cbioportal.cdd.service.internal;
 import java.util.*;
 import org.cbioportal.cdd.model.CancerStudy;
 import org.cbioportal.cdd.model.ClinicalAttributeMetadata;
+import org.cbioportal.cdd.model.MskVocabulary;
+import org.cbioportal.cdd.repository.mskvocabulary.MskVocabularyRepository;
 import org.cbioportal.cdd.service.ClinicalDataDictionaryService;
 import org.cbioportal.cdd.service.exception.CancerStudyNotFoundException;
 import org.cbioportal.cdd.service.exception.ClinicalAttributeNotFoundException;
@@ -37,17 +39,47 @@ import org.springframework.stereotype.Service;
 public class CDDServiceMskVocabularyImpl implements ClinicalDataDictionaryService {
 
     private static final Logger logger = LoggerFactory.getLogger(CDDServiceMskVocabularyImpl.class);
+    private Map<String, ClinicalAttributeMetadata> clinicalAttributeMetadataCache = new HashMap<String, ClinicalAttributeMetadata>();   
+ 
+    @Autowired
+    private MskVocabularyRepository  mskVocabularyRepository;
+   
+    private void fillClinicalAttributeMetadataCache() { 
+        List<MskVocabulary> mskClinicalAttributeMetadataList = mskVocabularyRepository.getClinicalAttributeMetadata();
+        for (MskVocabulary mskClinicalAttributeMetadata : mskClinicalAttributeMetadataList) {
+            ClinicalAttributeMetadata clinicalAttributeMetadata = new ClinicalAttributeMetadata(mskClinicalAttributeMetadata);
+            clinicalAttributeMetadataCache.put(clinicalAttributeMetadata.getColumnHeader(), clinicalAttributeMetadata);
+        }
+    }
 
     @Override
     public List<ClinicalAttributeMetadata> getClinicalAttributeMetadata(String cancerStudy)
         throws ClinicalMetadataSourceUnresponsiveException, CancerStudyNotFoundException {
-        return null;
+        if (clinicalAttributeMetadataCache.isEmpty()) {
+            fillClinicalAttributeMetadataCache();
+        }
+        return new ArrayList<ClinicalAttributeMetadata>(clinicalAttributeMetadataCache.values());
     }
 
     @Override
     public List<ClinicalAttributeMetadata> getMetadataByColumnHeaders(String cancerStudy, List<String> columnHeaders)
         throws ClinicalAttributeNotFoundException, ClinicalMetadataSourceUnresponsiveException, CancerStudyNotFoundException {
-        return null;
+        ArrayList<ClinicalAttributeMetadata> clinicalAttributeMetadata = new ArrayList<ClinicalAttributeMetadata>();
+        ArrayList<String> invalidColumnHeaders = new ArrayList<String>();
+        if (clinicalAttributeMetadataCache.isEmpty()) {
+            fillClinicalAttributeMetadataCache();
+        }
+        for (String columnHeader : columnHeaders) {
+            if (clinicalAttributeMetadataCache.containsKey(columnHeader)) {
+                clinicalAttributeMetadata.add(clinicalAttributeMetadataCache.get(columnHeader));
+            } else {
+                invalidColumnHeaders.add(columnHeader);
+            }
+        }
+        if (invalidColumnHeaders.size() > 0) {
+            throw new ClinicalAttributeNotFoundException(invalidColumnHeaders);
+        }
+        return clinicalAttributeMetadata;
     }
 
     @Override
@@ -59,7 +91,13 @@ public class CDDServiceMskVocabularyImpl implements ClinicalDataDictionaryServic
     @Override
     public ClinicalAttributeMetadata getMetadataByColumnHeader(String cancerStudy, String columnHeader)
         throws ClinicalAttributeNotFoundException, ClinicalMetadataSourceUnresponsiveException, CancerStudyNotFoundException {
-        return null;
+        if (clinicalAttributeMetadataCache.isEmpty()) {
+            fillClinicalAttributeMetadataCache();
+        }
+        if (!clinicalAttributeMetadataCache.containsKey(columnHeader)) {
+            throw new ClinicalAttributeNotFoundException(columnHeader);
+        }
+        return clinicalAttributeMetadataCache.get(columnHeader);
     }
 
     @Override

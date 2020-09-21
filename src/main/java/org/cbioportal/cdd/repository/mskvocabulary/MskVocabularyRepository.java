@@ -16,29 +16,23 @@
  * has been advised of the possibility of such damage.
 */
 
-package org.cbioportal.cdd.repository.topbraid;
-
-import java.lang.String;
-import java.util.*;
-import javax.annotation.Resource;
+package org.cbioportal.cdd.repository.mskvocabulary;
 
 import org.cbioportal.cdd.model.ClinicalAttributeMetadata;
-import org.cbioportal.cdd.model.MSKVocabResponse;
-import org.cbioportal.cdd.model.MSKClinicalAttributeMetadata;
-import org.cbioportal.cdd.repository.ClinicalAttributeMetadataRepository;
+import org.cbioportal.cdd.model.MskVocabulary;
+import org.cbioportal.cdd.model.MskVocabularyResponse;
+import org.cbioportal.cdd.repository.topbraid.TopBraidSessionConfiguration;
+import org.cbioportal.cdd.repository.topbraid.TopBraidException;
+
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.net.URI;
+import java.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.stereotype.Repository;
-
-import java.net.URI;
-import org.springframework.web.util.UriComponentsBuilder;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -50,30 +44,24 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
-
-import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.web.util.UriComponentsBuilder;
 
 /**
  *
- * @author Manda Wilson
+ * @author Avery Wang
  **/
 @Repository
-public class ClinicalAttributeMetadataRepositoryMSKVocabImpl implements ClinicalAttributeMetadataRepository {
+public class MskVocabularyRepository {
 
-    private final static Logger logger = LoggerFactory.getLogger(ClinicalAttributeMetadataRepositoryMSKVocabImpl.class);
+    private final static Logger logger = LoggerFactory.getLogger(MskVocabularyRepository.class);
 
-    @Value("${topbraid.url}")
-    private String topBraidURL;
-
-    private String mskVocabAPI = "http://dev.evn.mskcc.org/edg/api/projects";
- 
     @Autowired
     private TopBraidSessionConfiguration topBraidSessionConfiguration;
     
-    public ArrayList<ClinicalAttributeMetadata> getClinicalAttributeMetadata() {
-        logger.info("Fetching clinical attribute metadata from MSKVocab...");
+    private String mskVocabAPI = "http://dev.evn.mskcc.org/edg/api/projects";
+ 
+    public ArrayList<MskVocabulary> getClinicalAttributeMetadata() {
+        logger.info("Fetching clinical attribute metadata from MskVocabulary...");
         
         String sessionId = topBraidSessionConfiguration.getSessionId();
         RestTemplate restTemplate = new RestTemplate();
@@ -86,33 +74,22 @@ public class ClinicalAttributeMetadataRepositoryMSKVocabImpl implements Clinical
             .queryParam("projectId", "http://mskcc.org/ontologies/redcap#MSKO0012623")
             .build()
             .toUri();
+       
+         ArrayList<MskVocabulary> mskVocabulary = new ArrayList<MskVocabulary>();
         try {
             ResponseEntity<String> response = restTemplate.exchange(uri,
                 HttpMethod.GET,
                 request,
                 String.class);
             ObjectMapper mapper = new ObjectMapper();
-            MSKVocabResponse mskVocabResponse = mapper.readValue(response.getBody(), MSKVocabResponse.class);
-            ArrayList<MSKClinicalAttributeMetadata> mskClinicalAttributeMetadata = mskVocabResponse.getMSKClinicalAttributeMetadata();
-            int count = 0;
-            for (MSKClinicalAttributeMetadata a : mskClinicalAttributeMetadata) {
-                logger.info("\n\nPRINTING >>>>>>>>>>>>>>>>>");
-                logger.info(a.getDisplayName() + "	|	" + a.getAttributeType() + "	|	" + a.getDataType() + "	|	" + a.getColumnHeader() + "	|	" + a.getDescription() + "	|	" + a.getPriority());
-            }
+            MskVocabularyResponse mskVocabularyResponse = mapper.readValue(response.getBody(), MskVocabularyResponse.class);
+            mskVocabulary = mskVocabularyResponse.getMskVocabulary();
         } catch (RestClientException e) {
             logger.info("query() -- caught RestClientException");
             logger.info(e.getMessage());
             throw new TopBraidException("Failed to connect to TopBraid", e);
-        } catch (Exception e) {
-            logger.info("SOMETHING ELSE BROKE");
-            logger.info(e.getMessage());
-        }
-        return new ArrayList<ClinicalAttributeMetadata>();
+        } catch (Exception e) {}
+        return mskVocabulary;
     }
 
-    public Map<String, ArrayList<ClinicalAttributeMetadata>> getClinicalAttributeMetadataOverrides() {
-        return new HashMap<String, ArrayList<ClinicalAttributeMetadata>>();
-    }
-
-    
 }
